@@ -34,9 +34,10 @@ import java.util.concurrent.TimeUnit;
 public class CrackUtil {
 
     @Test
-    public void crackVerifyCode() {
+    public void crackVerifyCode() throws InterruptedException {
 
-        WebDriverManager.chromedriver().setup();
+//        WebDriverManager.chromedriver().setup();
+        System.setProperty("webdriver.chrome.driver","/home/v/IdeaProjects/maven/chromedriver/chromedriver");
 
         /**
          * 通过 selenium 进入到验证码页面（以 QQ 空间为例）
@@ -107,11 +108,11 @@ public class CrackUtil {
 
             WebElement dragElement = driver.findElement(By.id("tcaptcha_drag_button"));
 
-            //获取style属性值，其中设置了滑块初始偏离值 style=left: 23px;
+            // 获取style属性值，其中设置了滑块初始偏离值 style=left: 23px;
 
-            //需要注意的是网页前端图片和本地图片比例是不同的，需要进行换算
+            // 需要注意的是网页前端图片和本地图片比例是不同的，需要进行换算
 
-            slideDistance = slideDistance * 280 / 680 - 23;
+            slideDistance = slideDistance * 280 / 680 - 12;
 
             actions.clickAndHold(dragElement).perform();
 
@@ -121,7 +122,7 @@ public class CrackUtil {
 
             for (Integer index : moveTrack) {
 
-                //Thread.sleep(20);
+                Thread.sleep(10);
 
                 actions.moveByOffset(index, 0).perform();
 
@@ -131,10 +132,8 @@ public class CrackUtil {
         } catch (Exception e) {
             throw e;
         } finally {
-            driver.close();
+//            driver.close();
         }
-        
-
 
     }
 
@@ -188,7 +187,6 @@ public class CrackUtil {
          * 2、二值化转黑白图
          */
         //对滑动背景图进行处理
-
         Mat slideBgMat = Imgcodecs.imread(slideBgPicPath);
 
         //1、灰度化图片
@@ -223,7 +221,7 @@ public class CrackUtil {
 
         //返回匹配点的横向距离
 
-        return matchLocation.x;
+        return matchLocation.x + slideBlockMat.width() / 2;
     }
 
     /**
@@ -232,7 +230,7 @@ public class CrackUtil {
      * @param distance 需要移动的距离
      * @return
      */
-    public static List<Integer> getMoveTrack(int distance) {
+    private static List<Integer> getMoveTrack(int distance) {
         List<Integer> track = Lists.newArrayList();// 移动轨迹
         Random random = new Random();
         int current = 0;// 已经移动的距离
