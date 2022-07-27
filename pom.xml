@@ -22,6 +22,12 @@
             <artifactId>opencv</artifactId>
             <version>4.5.1-2</version>
         </dependency>
+        <dependency>
+            <groupId>org</groupId>
+            <artifactId>opencv</artifactId>
+            <scope>system</scope>
+            <systemPath>${project.basedir}\src\main\resources\opencv\m1\opencv-455.jar</systemPath>
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-chrome-driver -->
         <dependency>
@@ -35,11 +41,12 @@
             <version>5.2.0</version>
         </dependency>
         
+        
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>RELEASE</version>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

@@ -2,8 +2,11 @@ package module.crack;
 
 import com.google.common.collect.Lists;
 import io.github.bonigarcia.wdm.WebDriverManager;
-import org.apache.commons.exec.util.StringUtils;
-import org.junit.jupiter.api.Test;
+import module.crack.constant.ArchEnum;
+import module.crack.constant.CrackFactoryEnum;
+import module.crack.constant.OSEnum;
+import module.crack.module.CrackBO;
+import module.crack.module.CrackDTO;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -33,64 +36,83 @@ import java.util.concurrent.TimeUnit;
  */
 public class CrackUtil {
 
-    @Test
-    public void crackVerifyCode() throws InterruptedException {
+    /**
+     * 初始化
+     */
+    static {
+        // 加载OpenCV本地库
+        if (OSEnum.OSX.isCurrent() && ArchEnum.ARMv8.isCurrent()) {
+            // M1 
+            String opencvLocation = "opencv/m1/libopencv_java455.dylib";
+            URL url = ClassLoader.getSystemResource(opencvLocation);
+            System.load(url.getPath());
+        } else {
+            Integer javaVersion = Integer.valueOf(System.getProperty("java.version"));
+            if (javaVersion > 12) {
+                //  In Java 12+ loadShared() is not available. Use loadLocally() instead
+                nu.pattern.OpenCV.loadLocally();
+            } else {
+                nu.pattern.OpenCV.loadShared();
+            }
+        }
 
-//        WebDriverManager.chromedriver().setup();
-        System.setProperty("webdriver.chrome.driver","/home/v/IdeaProjects/maven/chromedriver/chromedriver");
+        // chrome
+        if (OSEnum.LINUX.isCurrent()) {
+            String chromeLocation = "chrome/linux64/chromedriver";
+            URL url = ClassLoader.getSystemResource(chromeLocation);
+            System.setProperty("webdriver.chrome.driver", url.getPath());
+        } else {
+            WebDriverManager.chromedriver().setup();
+        }
 
+    }
+
+    /**
+     * 核心方法, 破解验证码
+     * @param dto
+     */
+    public void crackVerifyCode(CrackDTO dto) {
         /**
-         * 通过 selenium 进入到验证码页面（以 QQ 空间为例）
+         * 通过 selenium 进入到验证码页面（以 QQ 007 为例）
          */
         WebDriver driver = new ChromeDriver();
         try {
-            driver.get("https://007.qq.com/online.html?ADTAG=index.head");
+            CrackFactoryEnum crackFactoryEnum = dto.getCrackFactoryEnum();
 
+            driver.get(crackFactoryEnum.getUrl());
             driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-
+            
+            // 获取 用户名 密码 登录按钮 元素
+            CrackBO crackBO = crackFactoryEnum.getGetElementService().getElement(driver);
+            WebElement userElement = crackBO.getUserElement();
+            WebElement pwdElement = crackBO.getPwdElement();
+            WebElement codeElement = crackBO.getCodeElement();
+            
             //切换登录页面所在iframe
-
-            WebElement loginFrame = driver.findElement(By.className("wp-on-form"));
-
-//            driver.switchTo().frame(loginFrame);
-
-            //        driver.findElement(By.id("switcher_plogin")).click();
-
-            loginFrame.findElement(By.id("acc")).sendKeys("362715381");
-
-            loginFrame.findElement(By.id("pwd")).sendKeys("1234r2we");
-
-            loginFrame.findElement(By.id("code")).click();
+            userElement.sendKeys(dto.getUserName());
+            pwdElement.sendKeys(dto.getPwd());
+            codeElement.click();
 
             /**
              * 滑块和背景是两张分开的图片，src 属性中保存的即为图片 URL 地址，所以我们可以通过 URL 将两者下载到本地
              */
             //切换到验证码所在的iframe
-
             WebElement tcaptchaFrame = driver.findElement(By.id("tcaptcha_iframe"));
-
             driver.switchTo().frame(tcaptchaFrame);
 
             //定位滑块图片
-
             WebElement slideBlock = driver.findElement(By.id("slideBlock"));
 
             //定位验证码背景图
-
             WebElement slideBg = driver.findElement(By.id("slideBg"));
 
             //获取图片Url链接
-
             String slideBlockUrl = slideBlock.getAttribute("src");
-
             String slideBgUrl = slideBg.getAttribute("src");
 
             //下载对应图片
-
             System.out.println("图片下载开始...");
-
             downloadImg(slideBlockUrl, "slideBlock.png");
-
             downloadImg(slideBgUrl, "slideBg.png");
 
             /**
@@ -100,26 +122,18 @@ public class CrackUtil {
              *
              */
             //获取滑块到滑动背景缺口图的横向距离
-
             double slideDistance = getSlideDistance(System.getProperty("user.dir") + File.separator + "slideBlock.png",
-                                                    System.getProperty("user.dir") + File.separator  + "slideBg.png");
-
+                                                    System.getProperty("user.dir") + File.separator + "slideBg.png");
             Actions actions = new Actions(driver);
-
             WebElement dragElement = driver.findElement(By.id("tcaptcha_drag_button"));
 
             // 获取style属性值，其中设置了滑块初始偏离值 style=left: 23px;
-
             // 需要注意的是网页前端图片和本地图片比例是不同的，需要进行换算
-
             slideDistance = slideDistance * 280 / 680 - 12;
-
             actions.clickAndHold(dragElement).perform();
 
             //根据滑动距离生成滑动轨迹，约定规则：开始慢->中间快->最后慢
-
             List<Integer> moveTrack = getMoveTrack((int) slideDistance);
-
             for (Integer index : moveTrack) {
 
                 Thread.sleep(10);
@@ -127,16 +141,28 @@ public class CrackUtil {
                 actions.moveByOffset(index, 0).perform();
 
             }
-
             actions.release().perform();
         } catch (Exception e) {
-            throw e;
+            throw new IllegalArgumentException(e.getMessage(), e);
         } finally {
-//            driver.close();
+            try {
+                // 休眠 10s 观察效果
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            // 关闭浏览器
+            driver.close();
         }
 
     }
 
+    /**
+     * 通过 openCV 模板匹配, 返回匹配点的横向距离
+     * @param slideBlockPicPath
+     * @param slideBgPicPath
+     * @return
+     */
     private Double getSlideDistance(String slideBlockPicPath, String slideBgPicPath) {
         /**
          * 首先对滑块进行处理
@@ -147,20 +173,14 @@ public class CrackUtil {
          *
          * 3、inRange 二值化转黑白图
          */
-        // 加载OpenCV本地库
-        nu.pattern.OpenCV.loadShared();
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-
         //对滑块进行处理
         // UnsatisfiedLinkError: 'long org.opencv.imgcodecs.Imgcodecs.imread_1(java.lang.String)'，之中情况是opencv模块没有加载所以无法正确链接到相应的方法。
         Mat slideBlockMat = Imgcodecs.imread(slideBlockPicPath);
 
         //1、灰度化图片
-
         Imgproc.cvtColor(slideBlockMat, slideBlockMat, Imgproc.COLOR_BGR2GRAY);
 
         //2、去除周围黑边
-
         for (int row = 0; row < slideBlockMat.height(); row++) {
 
             for (int col = 0; col < slideBlockMat.width(); col++) {
@@ -176,7 +196,6 @@ public class CrackUtil {
         }
 
         //3、inRange二值化转黑白图
-
         Core.inRange(slideBlockMat, Scalar.all(96), Scalar.all(96), slideBlockMat);
 
         /**
@@ -190,13 +209,10 @@ public class CrackUtil {
         Mat slideBgMat = Imgcodecs.imread(slideBgPicPath);
 
         //1、灰度化图片
-
         Imgproc.cvtColor(slideBgMat, slideBgMat, Imgproc.COLOR_BGR2GRAY);
 
         //2、二值化
-
         Imgproc.threshold(slideBgMat, slideBgMat, 127, 255, Imgproc.THRESH_BINARY);
-
         Mat g_result = new Mat();
 
         /*
@@ -208,7 +224,6 @@ public class CrackUtil {
          * TM_CCOEFF_NORMED标准相关匹配算法
 
          */
-
         Imgproc.matchTemplate(slideBgMat, slideBlockMat, g_result, Imgproc.TM_CCOEFF_NORMED);
 
         /* minMaxLoc：在给定的结果矩阵中寻找最大和最小值，并给出它们的位置
@@ -216,11 +231,9 @@ public class CrackUtil {
          * maxLoc最大值
 
          */
-
         Point matchLocation = Core.minMaxLoc(g_result).maxLoc;
 
         //返回匹配点的横向距离
-
         return matchLocation.x + slideBlockMat.width() / 2;
     }
 
@@ -234,7 +247,7 @@ public class CrackUtil {
         List<Integer> track = Lists.newArrayList();// 移动轨迹
         Random random = new Random();
         int current = 0;// 已经移动的距离
-        int mid = (int) distance * 4 / 5;// 减速阈值
+        int mid = distance * 4 / 5;// 减速阈值
         int a = 0;
         int move = 0;// 每次循环移动的距离
         while (true) {
@@ -255,6 +268,11 @@ public class CrackUtil {
         return track;
     }
 
+    /**
+     * 下载图片
+     * @param urlStr
+     * @param name
+     */
     private void downloadImg(String urlStr, String name) {
 
         try {
@@ -279,7 +297,7 @@ public class CrackUtil {
 
             fos.close();
             inputStream.close();
-//            System.out.println("the file: " + url + " download success");
+            //            System.out.println("the file: " + url + " download success");
         } catch (Exception e) {
             e.printStackTrace();
         }
