@@ -2,13 +2,14 @@ package module.crack.constant;
 
 import module.crack.factory.GetElementService;
 import module.crack.factory.impl.GetElementQQ007ServiceImpl;
+import module.crack.factory.impl.GetElementSJ21ServiceImpl;
 
 /**
  * 破解工厂, 用于获取各个实际的元素
  */
 public enum CrackFactoryEnum {
     QQ007("腾讯防火墙", "https://007.qq.com/online.html", GetElementQQ007ServiceImpl.class),
-    
+    SJ21("21世纪", "https://passport.21cnjy.com/login", GetElementSJ21ServiceImpl.class),
     ;
     
     private String name;

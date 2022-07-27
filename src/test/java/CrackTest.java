@@ -21,4 +21,14 @@ public class CrackTest {
         crackDTO.setCrackFactoryEnum(CrackFactoryEnum.QQ007);
         crackUtil.crackVerifyCode(crackDTO);
     }
+
+    @Test
+    public void crack21shTest() {
+        CrackUtil crackUtil = new CrackUtil();
+        CrackDTO crackDTO = new CrackDTO();
+        crackDTO.setUserName("362715381");
+        crackDTO.setPwd("1234r2we");
+        crackDTO.setCrackFactoryEnum(CrackFactoryEnum.SJ21);
+        crackUtil.crackVerifyCode(crackDTO);
+    }
 }
