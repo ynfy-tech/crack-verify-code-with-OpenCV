@@ -1,3 +1,5 @@
+Crack verify code By OpenCY   
+
 通过 opencv 破解腾讯验证码
 
 # Before Started
