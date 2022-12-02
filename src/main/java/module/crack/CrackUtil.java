@@ -62,6 +62,8 @@ public class CrackUtil {
                 throw new IllegalArgumentException(" M1 Only Support java 8 ");
             }
             // M1
+            // cmake opencv in java11 or java19 but can not execute the dylib file, i don't know the reason
+            // only performed preferably in java 8
             String opencvLocation = "opencv/m1/libopencv_java451.dylib";
             URL url = ClassLoader.getSystemResource(opencvLocation);
             System.load(url.getPath());
