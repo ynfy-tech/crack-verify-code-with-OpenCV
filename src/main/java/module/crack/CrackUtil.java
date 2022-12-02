@@ -20,10 +20,10 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 
@@ -40,21 +40,41 @@ public class CrackUtil {
      * 初始化
      */
     static {
-        // 加载OpenCV本地库
-        if (OSEnum.OSX.isCurrent() && ArchEnum.ARMv8.isCurrent()) {
-            // M1 
-            String opencvLocation = "opencv/m1/libopencv_java455.dylib";
+
+        Integer javaVersion = null;
+        try {
+            String versionStr = System.getProperty("java.version");
+            String[] versions = versionStr.split("\\.");
+            javaVersion = Integer.valueOf(versions[0]);
+        } catch (Exception e) {
+            javaVersion = 8;
+        }
+        
+        /**
+         * 加载OpenCV本地库
+         * linux: .so
+         * windows: .dll
+         * mac: .dylib
+         */
+        Boolean ifMacAppleSilicon = OSEnum.OSX.isCurrent() && ArchEnum.ARMv8.isCurrent();
+        if (ifMacAppleSilicon) {
+            if (javaVersion > 8) {
+                throw new IllegalArgumentException(" M1 Only Support java 8 ");
+            }
+            // M1
+            String opencvLocation = "opencv/m1/libopencv_java451.dylib";
             URL url = ClassLoader.getSystemResource(opencvLocation);
             System.load(url.getPath());
+        } else if (javaVersion > 11) {
+            // Other PlateForm & Java Version > 11
+            // In Java 11+ loadShared() is not available. Use loadLocally() instead
+            nu.pattern.OpenCV.loadLocally();
         } else {
-            Integer javaVersion = Integer.valueOf(System.getProperty("java.version"));
-            if (javaVersion > 12) {
-                //  In Java 12+ loadShared() is not available. Use loadLocally() instead
-                nu.pattern.OpenCV.loadLocally();
-            } else {
-                nu.pattern.OpenCV.loadShared();
-            }
+            // Other PlateForm & Java Version <= 11
+            nu.pattern.OpenCV.loadShared();
         }
+
+
 
         // chrome
         if (OSEnum.LINUX.isCurrent()) {
