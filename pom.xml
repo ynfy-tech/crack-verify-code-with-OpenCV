@@ -20,15 +20,15 @@
         <dependency>
             <groupId>org.openpnp</groupId>
             <artifactId>opencv</artifactId>
-            <version>4.5.1-2</version>
+            <version>4.7.0-0</version>
         </dependency>
         <dependency>
             <groupId>org</groupId>
             <artifactId>opencv</artifactId>
-            <version>455</version>
+            <version>470</version>
             <scope>system</scope>
             <!-- mac /  ||  linux \ -->
-            <systemPath>${project.basedir}/src/main/resources/opencv/m1/opencv-455.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/resources/opencv/m1/470/opencv-470.jar</systemPath>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-chrome-driver -->

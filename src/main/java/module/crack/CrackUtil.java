@@ -20,7 +20,6 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
 
 import java.io.*;
-import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
@@ -64,7 +63,7 @@ public class CrackUtil {
             // M1
             // cmake opencv in java11 or java19 but can not execute the dylib file, i don't know the reason
             // only performed preferably in java 8
-            String opencvLocation = "opencv/m1/libopencv_java451.dylib";
+            String opencvLocation = "opencv/m1/470/libopencv_java470.dylib";
             URL url = ClassLoader.getSystemResource(opencvLocation);
             System.load(url.getPath());
         } else if (javaVersion > 11) {
